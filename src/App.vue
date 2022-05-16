@@ -28,8 +28,13 @@
 <script>
 import {ref, computed} from 'vue'
 import api from './api'
+import { fetchByID } from './use/fetch'
 
 export default {
+
+  mounted() {
+    JSON.parse(sessionStorage.getItem('weatherApp')).map(city => this.getCityInfo(city))  
+  },
   setup() {
     let searchCity = ref('')
     let cities = ref([])
@@ -49,20 +54,19 @@ export default {
       return cities.value.filter((el) => el.name.startsWith(validCityName))
     })
 
-    const getCityInfo = (city) => {
+    const getCityInfo = async (city) => {
       cities.value= []
       searchCity.value = ''
-      api.requestCityInfoByID(city)
-        .then(response => {
-          citiesWeatherInfo.value.push(response.data)
-        })
-        .catch(({message}) => {
-          alert(message)
-        })
+      let response = await fetchByID(city)
+      if(response) {
+        citiesWeatherInfo.value.push(response.data)
+        sessionStorage.setItem('weatherApp', JSON.stringify(citiesWeatherInfo.value))
+      }
     }
 
     const removeCity = (id) => {
       citiesWeatherInfo.value = citiesWeatherInfo.value.filter(city => city.id !== id)
+      sessionStorage.setItem('weatherApp', JSON.stringify(citiesWeatherInfo.value))
     }
 
     return {
