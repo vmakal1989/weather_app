@@ -3,7 +3,7 @@
       <div class="search">
         <input 
           type="text" 
-          placeholder="Enter city name 'Minsk'" 
+          placeholder="Enter city name" 
           v-model.trim="searchCity"
         />
         <button class="search__btn" :disabled="!searchCity" @click="getCityInfoByName">search</button>
@@ -25,11 +25,14 @@
 import {ref, computed} from 'vue'
 import api from './api'
 import { fetchByID } from './use/fetch'
+import _ from 'lodash'
 
 export default {
 
   mounted() {
-    JSON.parse(sessionStorage.getItem('weatherApp')).map(city => this.getCityInfoByID(city))  
+    if(JSON.parse(sessionStorage.getItem('weatherApp'))) {
+      JSON.parse(sessionStorage.getItem('weatherApp')).map(city => this.getCityInfoByID(city))  
+    }  
   },
   setup() {
     let searchCity = ref('')
@@ -37,23 +40,25 @@ export default {
     let citiesWeatherInfo = ref([])
     let disabledUpdate = ref(false)
 
+    let handlingCitiesInfo = (response) => {
+      if(response) {
+        citiesWeatherInfo.value.push(response.data)
+        citiesWeatherInfo.value = _.uniqBy(citiesWeatherInfo.value, 'id')
+        sessionStorage.setItem('weatherApp', JSON.stringify(citiesWeatherInfo.value))
+      }
+    }
+
     const getCityInfoByID = async (city) => {
       cities.value= []
       searchCity.value = ''
       let response = await fetchByID(city)
-      if(response) {
-        citiesWeatherInfo.value.push(response.data)
-        sessionStorage.setItem('weatherApp', JSON.stringify(citiesWeatherInfo.value))
-      }
+      handlingCitiesInfo(response)
     }
 
     const getCityInfoByName = async () => {
       let response = await api.requestCityInfoByName(searchCity.value)
       searchCity.value = ''
-      if(response) {
-        citiesWeatherInfo.value.push(response.data)
-        sessionStorage.setItem('weatherApp', JSON.stringify(citiesWeatherInfo.value))
-      }
+      handlingCitiesInfo(response)
     } 
 
     const removeCity = (id) => {
