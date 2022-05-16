@@ -1,6 +1,6 @@
 <template>
     <main class="container">
-      <div class="search__container">
+      <div class="search">
         <input 
           type="text" 
           placeholder="Enter city name" 
@@ -8,8 +8,17 @@
           @input="getCities"
         />
         <ul class="search__city-list" v-if="filteredCities.length">
-          <li v-for="city of filteredCities" :key="city.id">
+          <li v-for="city of filteredCities" :key="city.id" @click="getCityInfo(city)">
             {{ `${city.name}, ${city.country}`}}
+          </li>
+        </ul>
+      </div>
+      <div class="weather">
+        <ul class="weather__city-list" v-if="citiesWeatherInfo.length">
+          <li v-for="city of citiesWeatherInfo" :key="city.id">
+            <span class="weather__city-name">{{`${city.name}, ${city.sys.country}`}}</span>
+            <span class="weather__city-info" v-html="Math.round(city.main.temp - 273) + '&deg'"/>
+            <span class="weather__city-remove" v-html="'&#10060;'" @click="removeCity(city.id)"/> 
           </li>
         </ul>
       </div>
@@ -24,6 +33,7 @@ export default {
   setup() {
     let searchCity = ref('')
     let cities = ref([])
+    let citiesWeatherInfo = ref([])
 
     const getCities = async () => {
       if(searchCity.value.length > 2) {
@@ -39,10 +49,29 @@ export default {
       return cities.value.filter((el) => el.name.startsWith(validCityName))
     })
 
+    const getCityInfo = (city) => {
+      cities.value= []
+      searchCity.value = ''
+      api.requestCityInfoByID(city)
+        .then(response => {
+          citiesWeatherInfo.value.push(response.data)
+        })
+        .catch(({message}) => {
+          alert(message)
+        })
+    }
+
+    const removeCity = (id) => {
+      citiesWeatherInfo.value = citiesWeatherInfo.value.filter(city => city.id !== id)
+    }
+
     return {
       searchCity,
       getCities,
-      filteredCities
+      filteredCities,
+      getCityInfo,
+      citiesWeatherInfo,
+      removeCity
     }
   }
 }
@@ -55,24 +84,22 @@ export default {
   margin: 60px auto;
 
   .search {
-    &__container {
-      position: relative;
-      input {
-        width: 100%;
-        height: 40px;
-        border: none;
-        box-shadow: 0px 5px 5px -5px rgba(34, 60, 80, 0.6);
-        font-size: 20px;
-        padding: 0 10px;
-        box-sizing: border-box;
+    position: relative;
+    input {
+      width: 100%;
+      height: 40px;
+      border: none;
+      box-shadow: 0px 5px 5px -5px rgba(34, 60, 80, 0.6);
+      font-size: 20px;
+      padding: 0 10px;
+      box-sizing: border-box;
 
-        &:focus {
-          box-shadow: 0px 5px 5px -5px rgba(100, 210, 36, 0.6);
-          outline: none;
-        }
+      &:focus {
+        box-shadow: 0px 5px 5px -5px rgba(100, 210, 36, 0.6);
+        outline: none;
       }
     }
-
+    
     &__city-list {
       width: 100%;
       position: absolute;
@@ -82,6 +109,8 @@ export default {
       max-height: 200px;
       overflow-y: scroll;
       box-shadow: 0px 5px 10px 2px rgba(34, 60, 80, 0.2);
+      background-color: #fff;
+      z-index: 5;
 
       li {
         list-style: none;
@@ -94,6 +123,27 @@ export default {
           cursor: pointer;
         }
       }
+    }
+  }
+  .weather {
+    &__city-list {
+      padding: 0;
+      li {
+        list-style: none;
+        font-size: 18px;
+        padding: 5px;
+        text-align: left;
+        display: flex;
+        justify-content: flex-end;
+      }
+    }
+    &__city-remove {
+      position: relative;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    &__city-name {
+      margin-right: auto;
     }
   }
 }
