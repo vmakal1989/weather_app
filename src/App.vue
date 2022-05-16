@@ -8,19 +8,20 @@
           @input="getCities"
         />
         <ul class="search__city-list" v-if="filteredCities.length">
-          <li v-for="city of filteredCities" :key="city.id" @click="getCityInfo(city)">
+          <li v-for="city of filteredCities" :key="city.id" @click="getCityInfoByID(city)">
             {{ `${city.name}, ${city.country}`}}
           </li>
         </ul>
       </div>
-      <div class="weather">
-        <ul class="weather__city-list" v-if="citiesWeatherInfo.length">
+      <div class="weather" v-if="citiesWeatherInfo.length">
+        <ul class="weather__city-list">
           <li v-for="city of citiesWeatherInfo" :key="city.id">
             <span class="weather__city-name">{{`${city.name}, ${city.sys.country}`}}</span>
             <span class="weather__city-info" v-html="Math.round(city.main.temp - 273) + '&deg'"/>
             <span class="weather__city-remove" v-html="'&#10060;'" @click="removeCity(city.id)"/> 
           </li>
         </ul>
+        <button class="weather__update" v-html="'update'" @click="updateCitiesInfo()" :disabled="disabledUpdate"/>
       </div>
     </main>
 </template>
@@ -33,19 +34,20 @@ import { fetchByID } from './use/fetch'
 export default {
 
   mounted() {
-    JSON.parse(sessionStorage.getItem('weatherApp')).map(city => this.getCityInfo(city))  
+    JSON.parse(sessionStorage.getItem('weatherApp')).map(city => this.getCityInfoByID(city))  
   },
   setup() {
     let searchCity = ref('')
     let cities = ref([])
     let citiesWeatherInfo = ref([])
+    let disabledUpdate = ref(false)
 
     const getCities = async () => {
       if(searchCity.value.length > 2) {
         cities.value = await api.getCities()
       }
       else {
-        cities.value= []
+        cities.value = []
       }
     }
 
@@ -54,7 +56,7 @@ export default {
       return cities.value.filter((el) => el.name.startsWith(validCityName))
     })
 
-    const getCityInfo = async (city) => {
+    const getCityInfoByID = async (city) => {
       cities.value= []
       searchCity.value = ''
       let response = await fetchByID(city)
@@ -69,13 +71,27 @@ export default {
       sessionStorage.setItem('weatherApp', JSON.stringify(citiesWeatherInfo.value))
     }
 
+    const updateCitiesInfo = () => {
+      disabledUpdate.value = true
+      let wasUpdateCities = citiesWeatherInfo.value
+      citiesWeatherInfo.value = []
+      wasUpdateCities.map(city => getCityInfoByID(city))
+      
+      let disabledTimeOut = setTimeout(() => {
+        disabledUpdate.value = false
+        clearTimeout(disabledTimeOut)
+      }, 300000)
+    }
+
     return {
       searchCity,
       getCities,
       filteredCities,
-      getCityInfo,
+      getCityInfoByID,
       citiesWeatherInfo,
-      removeCity
+      removeCity,
+      updateCitiesInfo,
+      disabledUpdate
     }
   }
 }
@@ -148,6 +164,9 @@ export default {
     }
     &__city-name {
       margin-right: auto;
+    }
+    &__update {
+      cursor: pointer;
     }
   }
 }
