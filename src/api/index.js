@@ -8,11 +8,13 @@ const instance = axios.create({
 
 
 export default {
-    async getCities() {
-      let response = await axios.get('/src/libraries/city.list.json');
-      return response.data
-    },
     requestCityInfoByID(id) {
       return instance.get(`weather?id=${id}&appid=${API_KEY}`)
+    },
+    requestCityInfoByName(name) {
+      return instance.get(`weather?q=${name}&appid=${API_KEY}`)
+        .catch(({message}) => {
+          alert(`Request weather in ${name} is failed, please check correct name`)
+        })
     }
 }

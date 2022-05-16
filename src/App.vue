@@ -3,15 +3,10 @@
       <div class="search">
         <input 
           type="text" 
-          placeholder="Enter city name" 
-          v-model.trim="searchCity" 
-          @input="getCities"
+          placeholder="Enter city name 'Minsk'" 
+          v-model.trim="searchCity"
         />
-        <ul class="search__city-list" v-if="filteredCities.length">
-          <li v-for="city of filteredCities" :key="city.id" @click="getCityInfoByID(city)">
-            {{ `${city.name}, ${city.country}`}}
-          </li>
-        </ul>
+        <button class="search__btn" :disabled="!searchCity" @click="getCityInfoByName">search</button>
       </div>
       <div class="weather" v-if="citiesWeatherInfo.length">
         <ul class="weather__city-list">
@@ -42,20 +37,6 @@ export default {
     let citiesWeatherInfo = ref([])
     let disabledUpdate = ref(false)
 
-    const getCities = async () => {
-      if(searchCity.value.length > 2) {
-        cities.value = await api.getCities()
-      }
-      else {
-        cities.value = []
-      }
-    }
-
-    const filteredCities = computed(() => {
-      let validCityName = searchCity.value.charAt(0).toUpperCase() + searchCity.value.slice(1)
-      return cities.value.filter((el) => el.name.startsWith(validCityName))
-    })
-
     const getCityInfoByID = async (city) => {
       cities.value= []
       searchCity.value = ''
@@ -65,6 +46,15 @@ export default {
         sessionStorage.setItem('weatherApp', JSON.stringify(citiesWeatherInfo.value))
       }
     }
+
+    const getCityInfoByName = async () => {
+      let response = await api.requestCityInfoByName(searchCity.value)
+      searchCity.value = ''
+      if(response) {
+        citiesWeatherInfo.value.push(response.data)
+        sessionStorage.setItem('weatherApp', JSON.stringify(citiesWeatherInfo.value))
+      }
+    } 
 
     const removeCity = (id) => {
       citiesWeatherInfo.value = citiesWeatherInfo.value.filter(city => city.id !== id)
@@ -76,7 +66,7 @@ export default {
       let wasUpdateCities = citiesWeatherInfo.value
       citiesWeatherInfo.value = []
       wasUpdateCities.map(city => getCityInfoByID(city))
-      
+
       let disabledTimeOut = setTimeout(() => {
         disabledUpdate.value = false
         clearTimeout(disabledTimeOut)
@@ -85,9 +75,8 @@ export default {
 
     return {
       searchCity,
-      getCities,
-      filteredCities,
       getCityInfoByID,
+      getCityInfoByName,
       citiesWeatherInfo,
       removeCity,
       updateCitiesInfo,
@@ -105,6 +94,8 @@ export default {
 
   .search {
     position: relative;
+    display: flex;
+    align-items: center;
     input {
       width: 100%;
       height: 40px;
@@ -119,30 +110,11 @@ export default {
         outline: none;
       }
     }
-    
-    &__city-list {
-      width: 100%;
-      position: absolute;
-      top: 30px;
-      left: 0;
-      padding: 0;
-      max-height: 200px;
-      overflow-y: scroll;
-      box-shadow: 0px 5px 10px 2px rgba(34, 60, 80, 0.2);
-      background-color: #fff;
-      z-index: 5;
 
-      li {
-        list-style: none;
-        font-size: 18px;
-        padding: 5px;
-        text-align: left;
-
-        &:hover {
-          background-color: rgba(100, 210, 36, 0.2);
-          cursor: pointer;
-        }
-      }
+    &__btn {
+      cursor: pointer;
+      border-radius: 3px;
+      height: 30px;
     }
   }
   .weather {
